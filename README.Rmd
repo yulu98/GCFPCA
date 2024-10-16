@@ -1,0 +1,72 @@
+---
+output: github_document
+---
+
+<!-- README.md is generated from README.Rmd. Please edit that file -->
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>",
+  fig.path = "man/figures/README-",
+  out.width = "100%"
+)
+```
+
+# GCFPCA
+
+<!-- badges: start -->
+<!-- badges: end -->
+
+generalized conditional functional principal components analysis
+
+* Authors: [Yu Lu], Xinkai Zhou, Erjia Cui, Dustin Rogers, Ciprian Crainiceanu, Julia Wrobel, Andrew Leroux
+* Version: 0.9
+
+
+## Installation
+
+You can install the development version of GCFPCA from [GitHub](https://github.com/) with:
+
+```{r}
+# install.packages("devtools")
+devtools::install_github("yulu98/GCFPCA")
+
+
+# build vignette with installation
+devtools::install_github("yulu98/GCFPCA", build_vignettes = TRUE)
+```
+
+## Example
+
+This example performs GFPCA on simulated binary data. More details on the use of the package can be found in the vignette.
+
+```{r example}
+library(GCFPCA)
+
+# simulate data
+I = 100
+K = 200
+
+# simulate data and save results
+set.seed(1134)
+
+#set true fixed effects
+theta_0 = rnorm(10 + 4, sd=1)
+theta_1 = rnorm(10 + 4, sd=1)
+
+#set true fixed effects
+f_0 = function(s) bs(s, knots=seq(0.1, 0.9, len=10), Boundary.knots=c(0,1), intercept=TRUE) %*% theta_0
+f_1 = function(s) bs(s, knots=seq(0.1, 0.9, len=10), Boundary.knots=c(0,1), intercept=TRUE) %*% theta_1
+
+bin_sim <- gcfpca_simu(I = I, K = K, family = "binomial",
+                         beta0_true = f_0, beta1_true = f_1)
+
+# run gfpca
+bin_model <- gc_fpca(formula = Y ~ X + (1|id),
+                      data = bin_sim$df_gcfpca,
+                      binwidth = 10,
+                      family = "binomial",
+                      pve = 0.95, npc = 4)
+
+```

@@ -1,0 +1,37 @@
+Package: GCFPCA
+Type: Package
+Title: Generalized conditional functional principle analysis
+Version: 0.0.0.9000
+Date: 2024-10-16
+Authors@R: c(
+    person("Yu", "Lu", role = c("aut", "cre"), 
+    email = "ylu136@jhu.edu",
+    comment = c(ORCID = " ")),
+    person("Xinkai", "Zhou", role = "aut", email = "xzhou118@jhu.edu"),
+    person("Erjia", "Cui", role = "aut", email = "ecui@umn.edu"),
+    person("Dustin", "Rogers", role = "aut", email = "dustin.rogers@cuanschutz.edu"),
+    person("Ciprian", "Crainiceanu", role = "aut", email = "ccraini1@jhu.edu"),
+    person("Julia", "Wrobel", role = c("aut"), email = "julia.wrobel@cuanschutz.edu"),
+    person("Andrew", "Leroux", role = "aut", email = "andrew.leroux@cuanschutz.edu")
+    )
+Description: A method for performing generalized conditional functional principal components analysis. 
+  Generalized indicates that the outcome Y can follow exponential family distributions.
+  including binomial and Poisson,
+  to accommodate FPCA of binary and count data.
+License: MIT + file LICENSE
+Encoding: UTF-8
+Roxygen: list(markdown = TRUE)
+RoxygenNote: 7.2.1
+Suggests: 
+    knitr,
+    rmarkdown,
+    testthat (>= 3.0.0),
+    tidyverse
+VignetteBuilder: knitr
+Imports: 
+    magrittr,
+    dplyr,
+    lme4,
+    mgcv,
+    refund
+Config/testthat/edition: 3
