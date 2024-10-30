@@ -28,7 +28,7 @@ Generalized Conditional Functional Principal Components Analysis (GCFPCA) is an 
 
 You can install the development version of GCFPCA from GitHub:
 
-```{r}
+```{r, echo = TRUE, eval = FALSE}
 # install.packages("devtools")
 devtools::install_github("yulu98/GCFPCA", build_vignettes = TRUE)
 ```
