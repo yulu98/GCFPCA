@@ -5,7 +5,6 @@
 .Rproj
 data-raw/
 data/nhanes_fda_with_r.rds
-docs
 /doc/
 /Meta/
 vignettes/gcfpca_cache/
