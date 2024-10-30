@@ -37,3 +37,4 @@ Imports:
     mgcv,
     refund
 Config/testthat/edition: 3
+URL: https://yulu98.github.io/GCFPCA/
