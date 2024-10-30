@@ -1,0 +1,27 @@
+url: https://yulu98.github.io/GCFPCA
+
+template:
+  bootstrap: 5
+
+navbar:
+  title: "GCFPCA"
+  structure:
+    left:
+      - home
+      - reference
+      - articles
+  right:
+    - text: "GitHub"
+      href: https://github.com/yulu98/GCFPCA
+      icon: fa-github
+
+articles:
+  - title: "GCFPCA Vignette"
+    contents:
+      - gcfpca  # Ensure the vignette name here matches exactly with `gcfpca.html`
+
+reference:
+  - title: "Main Functions"
+    contents:
+      - gc_fpca
+      - gcfpca_simu

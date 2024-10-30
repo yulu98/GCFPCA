@@ -1,6 +1,6 @@
 Package: GCFPCA
 Type: Package
-Title: Generalized conditional functional principle analysis
+Title: Generalized Conditional Functional Principal Component Analysis
 Version: 0.0.0.9000
 Date: 2024-10-16
 Authors@R: c(
@@ -15,20 +15,22 @@ Authors@R: c(
     person("Andrew", "Leroux", role = "aut", email = "andrew.leroux@cuanschutz.edu")
     )
 Description: A method for performing generalized conditional functional principal components analysis. 
-  Generalized indicates that the outcome Y can follow exponential family distributions.
-  including binomial and Poisson,
-  to accommodate FPCA of binary and count data.
+  The method allows the outcome Y to follow exponential family distributions, including binomial and Poisson, 
+  accommodating FPCA of binary and count data.
 License: MIT + file LICENSE
 Encoding: UTF-8
 Roxygen: list(markdown = TRUE)
-RoxygenNote: 7.2.1
+RoxygenNote: 7.2.2
 Suggests: 
     knitr,
     rmarkdown,
     testthat (>= 3.0.0),
     tidyverse
 VignetteBuilder: knitr
-Imports: 
+Imports:
+    mvtnorm, 
+    stats,
+    utils,
     magrittr,
     dplyr,
     lme4,
