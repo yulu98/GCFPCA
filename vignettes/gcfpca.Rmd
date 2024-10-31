@@ -302,7 +302,7 @@ Here we subsetting the NHANES data to show an example of how to apply our method
 
 We deleted all the missingness and subsetted 50 subjects to show our method.
 
-```{r nhanes_process}
+```{r nhanes_process, echo=FALSE, eval=FALSE}
 df_single <- readRDS("/Users/luyu/Library/CloudStorage/OneDrive-JohnsHopkins/WITgroup/GCFPCA/data/nhanes_fda_with_r.rds") %>%
   na.omit()
 
@@ -329,6 +329,11 @@ df_long <- df_selected %>%
   mutate(gender = ifelse(gender == "Male", 0, 1)) %>%
   rename(index = MIN) %>%
   mutate(id = factor(id))
+saveRDS(df_long, "../data/df_long.rds")
+```
+
+```{r df_long}
+df_long <- readRDS("../data/df_long.rds")
 ```
 
 First, we fit our GCFPCA model on the subsetted data. ${\rm logit}\{P\{Z_i(s)=1\}\} = \beta_0(s) + \beta_1(s) \text{Age}_i + \beta_2(s) \text{Gender}_i + \sum_{l=1}^{4} \xi_{il}\phi_l(s)$

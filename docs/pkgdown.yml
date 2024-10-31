@@ -3,7 +3,7 @@ pkgdown: 2.1.1
 pkgdown_sha: ~
 articles:
   gcfpca: gcfpca.html
-last_built: 2024-10-30T17:44Z
+last_built: 2024-10-31T15:59Z
 urls:
   reference: https://yulu98.github.io/GCFPCA/reference
   article: https://yulu98.github.io/GCFPCA/articles
