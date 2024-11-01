@@ -1,5 +1,6 @@
 ---
 title: "GC-FPCA: a vignette"
+author: "Yu Lu <ylu136@jh.edu>"
 output: rmarkdown::html_vignette
 vignette: >
   %\VignetteIndexEntry{GC-FPCA: a vignette}
