@@ -2,7 +2,7 @@ pandoc: '3.4'
 pkgdown: 2.1.1
 pkgdown_sha: ~
 articles: {}
-last_built: 2024-11-18T15:57Z
+last_built: 2024-11-18T16:03Z
 urls:
   reference: https://yulu98.github.io/GCFPCA/reference
   article: https://yulu98.github.io/GCFPCA/articles
