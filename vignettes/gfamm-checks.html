@@ -1,0 +1,732 @@
+<!DOCTYPE html>
+
+<html>
+
+<head>
+
+<meta charset="utf-8" />
+<meta name="generator" content="pandoc" />
+<meta http-equiv="X-UA-Compatible" content="IE=EDGE" />
+
+
+
+
+<title>gfamm-checks.knit</title>
+
+<script src="gfamm-checks_files/header-attrs-2.27/header-attrs.js"></script>
+<script src="gfamm-checks_files/jquery-3.6.0/jquery-3.6.0.min.js"></script>
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<link href="gfamm-checks_files/bootstrap-3.3.5/css/bootstrap.min.css" rel="stylesheet" />
+<script src="gfamm-checks_files/bootstrap-3.3.5/js/bootstrap.min.js"></script>
+<script src="gfamm-checks_files/bootstrap-3.3.5/shim/html5shiv.min.js"></script>
+<script src="gfamm-checks_files/bootstrap-3.3.5/shim/respond.min.js"></script>
+<style>h1 {font-size: 34px;}
+       h1.title {font-size: 38px;}
+       h2 {font-size: 30px;}
+       h3 {font-size: 24px;}
+       h4 {font-size: 18px;}
+       h5 {font-size: 16px;}
+       h6 {font-size: 12px;}
+       code {color: inherit; background-color: rgba(0, 0, 0, 0.04);}
+       pre:not([class]) { background-color: white }</style>
+<script src="gfamm-checks_files/navigation-1.1/tabsets.js"></script>
+<link href="gfamm-checks_files/highlightjs-9.12.0/default.css" rel="stylesheet" />
+<script src="gfamm-checks_files/highlightjs-9.12.0/highlight.js"></script>
+
+<style type="text/css">
+  code{white-space: pre-wrap;}
+  span.smallcaps{font-variant: small-caps;}
+  span.underline{text-decoration: underline;}
+  div.column{display: inline-block; vertical-align: top; width: 50%;}
+  div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+  ul.task-list{list-style: none;}
+    </style>
+
+<style type="text/css">code{white-space: pre;}</style>
+<script type="text/javascript">
+if (window.hljs) {
+  hljs.configure({languages: []});
+  hljs.initHighlightingOnLoad();
+  if (document.readyState && document.readyState === "complete") {
+    window.setTimeout(function() { hljs.initHighlighting(); }, 0);
+  }
+}
+</script>
+
+
+
+
+
+
+
+
+
+<style type = "text/css">
+.main-container {
+  max-width: 940px;
+  margin-left: auto;
+  margin-right: auto;
+}
+img {
+  max-width:100%;
+}
+.tabbed-pane {
+  padding-top: 12px;
+}
+.html-widget {
+  margin-bottom: 20px;
+}
+button.code-folding-btn:focus {
+  outline: none;
+}
+summary {
+  display: list-item;
+}
+details > summary > p:only-child {
+  display: inline;
+}
+pre code {
+  padding: 0;
+}
+</style>
+
+
+
+<!-- tabsets -->
+
+<style type="text/css">
+.tabset-dropdown > .nav-tabs {
+  display: inline-table;
+  max-height: 500px;
+  min-height: 44px;
+  overflow-y: auto;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+}
+
+.tabset-dropdown > .nav-tabs > li.active:before, .tabset-dropdown > .nav-tabs.nav-tabs-open:before {
+  content: "\e259";
+  font-family: 'Glyphicons Halflings';
+  display: inline-block;
+  padding: 10px;
+  border-right: 1px solid #ddd;
+}
+
+.tabset-dropdown > .nav-tabs.nav-tabs-open > li.active:before {
+  content: "\e258";
+  font-family: 'Glyphicons Halflings';
+  border: none;
+}
+
+.tabset-dropdown > .nav-tabs > li.active {
+  display: block;
+}
+
+.tabset-dropdown > .nav-tabs > li > a,
+.tabset-dropdown > .nav-tabs > li > a:focus,
+.tabset-dropdown > .nav-tabs > li > a:hover {
+  border: none;
+  display: inline-block;
+  border-radius: 4px;
+  background-color: transparent;
+}
+
+.tabset-dropdown > .nav-tabs.nav-tabs-open > li {
+  display: block;
+  float: none;
+}
+
+.tabset-dropdown > .nav-tabs > li {
+  display: none;
+}
+</style>
+
+<!-- code folding -->
+
+
+
+
+</head>
+
+<body>
+
+
+<div class="container-fluid main-container">
+
+
+
+
+<div id="header">
+
+
+
+
+</div>
+
+
+<pre class="r"><code>library(GCFPCA)
+library(tidyverse)
+library(lme4)
+library(refund)
+library(mvtnorm)
+library(splines)
+library(tf) #remotes::install_github(&quot;tidyfun/tf&quot;, ref = &quot;dev&quot;)
+library(tidyfun) # remotes::install_github(&quot;tidyfun/tidyfun&quot;)
+library(patchwork)
+library(sessioninfo)
+theme_set(theme_minimal())
+
+plot_pffr &lt;- function(m) {
+  layout(t(1:3))
+  plot(m, select = 1,  scheme = 1) 
+  lines(seq(0, 1, length.out = K), f_0(seq(0, 1, length.out = K)), col = 2)
+  plot(m, select = 2, scheme = 1)
+  lines(seq(0, 1, length.out = K), f_1(seq(0, 1, length.out = K)), col = 2)
+  re &lt;- matrix(predict(m, type = &quot;terms&quot;)[[3]], ncol = K)
+  tfd(re) |&gt; plot(ylab = &quot;REs&quot;)
+}
+
+plot_pffr_nhanes &lt;- function(m) {
+  layout(t(1:4))
+  plot(m, select = 1, shift = m$coefficients[1], scheme = 1) #! shift by intercept -- CI will be too tight!
+  plot(m, select = 2, scheme = 1, scale = 0)
+  plot(m, select = 3, scheme = 1, scale = 0)
+  re &lt;- predict(m, type = &quot;terms&quot;)[[4]]
+  matrix(re, ncol = dim(re)[2]) |&gt; tfd() |&gt; plot(ylab = &quot;REs&quot;, alpha = .1) #type = &quot;lasagna&quot;)
+}
+
+plot_pffr_eta &lt;- function(m, sim) {
+  data &lt;- tibble(
+    true = sim$df_gcfpca |&gt; select(id, index, eta) |&gt; tfd(),
+    pred = predict(m, type = &quot;link&quot;) |&gt; tfd(arg = tf_arg(true))
+  ) |&gt;
+    pivot_longer(c(pred, true))
+  ggplot(data) +
+    geom_spaghetti(aes(y = value, col = name)) +
+    facet_wrap(~name)
+}
+
+plot_gcfpca &lt;- function(count_model) {
+  plot_df &lt;- cbind.data.frame(
+    sind = rep(seq(0, 1, length.out = K), 2),
+    betahat = c(data.matrix(count_model$betaHat)),
+    betatrue = c(
+      f_0(seq(0, 1, length.out = K)),
+      f_1(seq(0, 1, length.out = K))
+    ),
+    X = c(
+      rep(&quot;Intercept&quot;, K),
+      rep(&quot;X&quot;, K)
+    ),
+    CI_L_pw = c(data.matrix(count_model$CI_L_pw)),
+    CI_U_pw = c(data.matrix(count_model$CI_U_pw)),
+    CI_L_joint = c(data.matrix(count_model$CI_L_joint)),
+    CI_U_joint = c(data.matrix(count_model$CI_U_joint))
+  ) %&gt;%
+    mutate(X = factor(X, levels = c(
+      &quot;Intercept&quot;,
+      &quot;X&quot;
+    )))
+
+  plot_df %&gt;%
+    ggplot(aes(x = sind, y = betahat)) +
+    geom_ribbon(aes(ymin = CI_L_joint, ymax = CI_U_joint, fill = &quot;CI Joint&quot;), alpha = 0.5) +
+    geom_ribbon(aes(ymin = CI_L_pw, ymax = CI_U_pw, fill = &quot;CI&quot;), alpha = 0.5) +
+    geom_line(aes(color = &quot;GCFPCA&quot;)) +
+    geom_line(aes(x = sind, y = betatrue, color = &quot;truth&quot;)) +
+    scale_fill_manual(values = c(&quot;CI&quot; = &quot;black&quot;, &quot;CI Joint&quot; = &quot;lightgray&quot;), name = &quot;Confidence Interval&quot;) +
+    scale_color_manual(values = c(&quot;GCFPCA&quot; = &quot;darkblue&quot;, &quot;truth&quot; = &quot;red&quot;), name = &quot;Confidence Interval&quot;) +
+    # Adding a horizontal dotted line at y = 0
+    geom_hline(yintercept = 0, linetype = &quot;dotted&quot;) +
+    # Setting x-axis labels to show time
+    scale_x_continuous(breaks = seq(0, 1, by = 0.2)) +
+    # Facet the plot by variable X, with 3 columns
+    facet_wrap(~X, ncol = 3, scales = &quot;free_y&quot;) +
+    # Adding axis labels and title
+    labs(x = &quot;Functional Domain&quot;, y = &quot;&quot;, fill = &quot;Confidence Interval&quot;)
+}
+
+plot_gcfpca_eta &lt;- function(m, sim) {
+  sim$df_gcfpca %&gt;%
+    mutate(eta_hat = as.vector(m$etas)) %&gt;%
+    pivot_longer(cols = c(eta, eta_hat)) |&gt;
+    # filter(id %in% c(1, 2, 8)) %&gt;%
+    ggplot(aes(x = index, y = value, group = id, col = name)) +
+    geom_line() +
+    facet_wrap(~ rev(name))
+}
+sessioninfo::session_info()</code></pre>
+<pre><code>## ─ Session info ─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+##  setting  value
+##  version  R version 4.4.1 (2024-06-14)
+##  os       Ubuntu 22.04.3 LTS
+##  system   x86_64, linux-gnu
+##  ui       RStudio
+##  language (EN)
+##  collate  en_US.UTF-8
+##  ctype    en_US.UTF-8
+##  tz       Etc/UTC
+##  date     2024-12-11
+##  rstudio  2024.04.2+764 Chocolate Cosmos (server)
+##  pandoc   3.2 @ /usr/bin/ (via rmarkdown)
+## 
+## ─ Packages ─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+##  !  package      * version    date (UTC) lib source
+##     abind          1.4-5      2016-07-21 [2] RSPM (R 4.4.0)
+##     backports      1.5.0      2024-05-23 [2] RSPM (R 4.4.0)
+##     bitops         1.0-7      2021-04-24 [1] RSPM (R 4.4.0)
+##     boot           1.3-30     2024-02-26 [3] CRAN (R 4.4.1)
+##     bslib          0.7.0      2024-03-29 [2] RSPM (R 4.4.0)
+##     cachem         1.1.0      2024-05-16 [2] RSPM (R 4.4.0)
+##     checkmate      2.3.1      2023-12-04 [1] RSPM (R 4.4.0)
+##     cli            3.6.2      2023-12-11 [2] RSPM (R 4.4.0)
+##     cluster        2.1.6      2023-12-01 [3] CRAN (R 4.4.1)
+##     codetools      0.2-20     2024-03-31 [3] CRAN (R 4.4.1)
+##     colorspace     2.1-0      2023-01-23 [2] RSPM (R 4.4.0)
+##     crayon         1.5.2      2022-09-29 [2] RSPM (R 4.4.0)
+##     deSolve        1.40       2023-11-27 [1] RSPM (R 4.4.0)
+##     digest         0.6.35     2024-03-11 [2] RSPM (R 4.4.0)
+##     doParallel   * 1.0.17     2022-02-07 [1] RSPM (R 4.4.0)
+##     dplyr        * 1.1.4      2023-11-17 [2] RSPM (R 4.4.0)
+##     evaluate       0.24.0     2024-06-10 [2] RSPM (R 4.4.0)
+##     fansi          1.0.6      2023-12-08 [2] RSPM (R 4.4.0)
+##     fastmap        1.2.0      2024-05-15 [2] RSPM (R 4.4.0)
+##     fda            6.1.8      2024-03-09 [1] RSPM (R 4.4.0)
+##     fds            1.8        2018-10-31 [1] RSPM (R 4.4.0)
+##     forcats      * 1.0.0      2023-01-29 [2] RSPM (R 4.4.0)
+##     foreach      * 1.5.2      2022-02-02 [1] RSPM (R 4.4.0)
+##     gamm4          0.2-6      2020-04-03 [1] RSPM (R 4.4.0)
+##     GCFPCA       * 0.0.0.9000 2024-12-06 [1] local
+##     generics       0.1.3      2022-07-05 [2] RSPM (R 4.4.0)
+##     GGally         2.2.1      2024-02-14 [1] RSPM (R 4.4.0)
+##     ggplot2      * 3.5.1      2024-04-23 [2] RSPM (R 4.4.0)
+##     ggstats        0.7.0      2024-09-22 [1] RSPM (R 4.4.0)
+##     glue           1.7.0      2024-01-09 [2] RSPM (R 4.4.0)
+##     grpreg         3.4.0      2021-07-26 [1] RSPM (R 4.4.0)
+##     gtable         0.3.5      2024-04-22 [2] RSPM (R 4.4.0)
+##     hdrcde         3.4        2021-01-18 [1] RSPM (R 4.4.0)
+##     here         * 1.0.1      2020-12-13 [2] RSPM (R 4.4.0)
+##     hms            1.1.3      2023-03-21 [2] RSPM (R 4.4.0)
+##     htmltools      0.5.8.1    2024-04-04 [2] RSPM (R 4.4.0)
+##     iterators    * 1.0.14     2022-02-05 [1] RSPM (R 4.4.0)
+##     jquerylib      0.1.4      2021-04-26 [2] RSPM (R 4.4.0)
+##     jsonlite       1.8.8      2023-12-04 [2] RSPM (R 4.4.0)
+##     KernSmooth     2.23-24    2024-05-17 [3] CRAN (R 4.4.1)
+##     knitr          1.47       2024-05-29 [2] RSPM (R 4.4.0)
+##     ks             1.14.2     2024-01-15 [1] RSPM (R 4.4.0)
+##     lattice        0.22-6     2024-03-20 [3] CRAN (R 4.4.1)
+##     lifecycle      1.0.4      2023-11-07 [2] RSPM (R 4.4.0)
+##     lme4         * 1.1-35.5   2024-07-03 [1] RSPM (R 4.4.0)
+##     lubridate    * 1.9.3      2023-09-27 [2] RSPM (R 4.4.0)
+##     magic          1.6-1      2022-11-16 [1] RSPM (R 4.4.0)
+##     magrittr       2.0.3      2022-03-30 [2] RSPM (R 4.4.0)
+##  VP MASS           7.3-60.2   2024-06-13 [3] RSPM (R 4.4.0) (on disk 7.3.61)
+##     Matrix       * 1.7-0      2024-04-26 [3] CRAN (R 4.4.1)
+##     mclust         6.1.1      2024-04-29 [1] RSPM (R 4.4.0)
+##     mgcv           1.9-1      2023-12-21 [3] CRAN (R 4.4.1)
+##     minqa          1.2.8      2024-08-17 [1] RSPM (R 4.4.0)
+##     munsell        0.5.1      2024-04-01 [2] RSPM (R 4.4.0)
+##     mvtnorm      * 1.2-5      2024-05-21 [2] RSPM (R 4.4.0)
+##  VP nlme           3.1-164    2024-06-06 [3] RSPM (R 4.4.0) (on disk 3.1.165)
+##     nloptr         2.1.1      2024-06-25 [1] RSPM (R 4.4.0)
+##     patchwork    * 1.2.0      2024-01-08 [1] RSPM (R 4.4.0)
+##     pbs            1.1        2013-06-08 [1] RSPM (R 4.4.0)
+##     pcaPP          2.0-5      2024-08-19 [1] RSPM (R 4.4.0)
+##     pillar         1.9.0      2023-03-22 [2] RSPM (R 4.4.0)
+##     pkgconfig      2.0.3      2019-09-22 [2] RSPM (R 4.4.0)
+##     plyr           1.8.9      2023-10-02 [2] RSPM (R 4.4.0)
+##     pracma         2.4.4      2023-11-10 [1] RSPM (R 4.4.0)
+##     purrr        * 1.0.2      2023-08-10 [2] RSPM (R 4.4.0)
+##     R6             2.5.1      2021-08-19 [2] RSPM (R 4.4.0)
+##     rainbow        3.8        2024-01-23 [1] RSPM (R 4.4.0)
+##     RColorBrewer   1.1-3      2022-04-03 [2] RSPM (R 4.4.0)
+##  VP Rcpp           1.0.12     2024-07-17 [2] RSPM (R 4.4.0) (on disk 1.0.13)
+##     RCurl          1.98-1.14  2024-01-09 [1] RSPM (R 4.4.0)
+##     readr        * 2.1.5      2024-01-10 [2] RSPM (R 4.4.0)
+##     refund       * 0.1-35     2024-02-14 [1] RSPM (R 4.4.0)
+##     rlang          1.1.4      2024-06-04 [2] RSPM (R 4.4.0)
+##     RLRsim         3.1-8      2022-03-16 [1] RSPM (R 4.4.0)
+##     rmarkdown      2.27       2024-05-17 [2] RSPM (R 4.4.0)
+##     rprojroot      2.0.4      2023-11-05 [2] RSPM (R 4.4.0)
+##     rstudioapi     0.16.0     2024-03-24 [2] RSPM (R 4.4.0)
+##     sass           0.4.9      2024-03-15 [2] RSPM (R 4.4.0)
+##     scales         1.3.0      2023-11-28 [2] RSPM (R 4.4.0)
+##     sessioninfo  * 1.2.2      2021-12-06 [2] RSPM (R 4.4.0)
+##     stringi        1.8.4      2024-05-06 [2] RSPM (R 4.4.0)
+##     stringr      * 1.5.1      2023-11-14 [2] RSPM (R 4.4.0)
+##     tf           * 0.3.5      2024-12-06 [1] Github (tidyfun/tf@e1f25dc)
+##     tibble       * 3.2.1      2023-03-20 [2] RSPM (R 4.4.0)
+##     tidyfun      * 0.0.98     2024-12-06 [1] Github (tidyfun/tidyfun@cb4e8d7)
+##     tidyr        * 1.3.1      2024-01-24 [2] RSPM (R 4.4.0)
+##     tidyselect     1.2.1      2024-03-11 [2] RSPM (R 4.4.0)
+##     tidyverse    * 2.0.0      2023-02-22 [2] RSPM (R 4.4.0)
+##     timechange     0.3.0      2024-01-18 [2] RSPM (R 4.4.0)
+##     tzdb           0.4.0      2023-05-12 [2] RSPM (R 4.4.0)
+##     utf8           1.2.4      2023-10-22 [2] RSPM (R 4.4.0)
+##     vctrs          0.6.5      2023-12-01 [2] RSPM (R 4.4.0)
+##     withr          3.0.0      2024-01-16 [2] RSPM (R 4.4.0)
+##     xfun           0.44       2024-05-15 [2] RSPM (R 4.4.0)
+##     yaml           2.3.8      2023-12-11 [2] RSPM (R 4.4.0)
+##     zoo            1.8-12     2023-04-13 [2] RSPM (R 4.4.0)
+## 
+##  [1] /dss/dsshome1/lxc04/ri68suz2/R/x86_64-pc-linux-gnu-library/4.4
+##  [2] /usr/local/lib/R/site-library
+##  [3] /usr/local/lib/R/library
+## 
+##  V ── Loaded and on-disk version mismatch.
+##  P ── Loaded and on-disk path mismatch.
+## 
+## ────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────</code></pre>
+<pre class="r"><code>sessionInfo()$BLAS</code></pre>
+<pre><code>## [1] &quot;/usr/lib/x86_64-linux-gnu/openblas-pthread/libblas.so.3&quot;</code></pre>
+<pre class="r"><code>sessionInfo()$LAPACK</code></pre>
+<pre><code>## [1] &quot;/usr/lib/x86_64-linux-gnu/openblas-pthread/libopenblasp-r0.3.20.so&quot;</code></pre>
+<div id="sim" class="section level2">
+<h2>SIM</h2>
+<pre class="r"><code># simulate data
+library(splines)
+
+I &lt;- 100
+K &lt;- 500
+
+# simulate data and save results
+set.seed(1312)
+
+# set true fixed effects
+theta_0 &lt;- rnorm(10 + 4, sd = 1) |&gt; scale(scale = FALSE) #ensure mean 0 
+theta_1 &lt;- rnorm(10 + 4, sd = 1)
+
+# set true fixed effects
+f_0 &lt;- function(s) bs(s, knots = seq(0.1, 0.9, len = 10), Boundary.knots = c(0, 1), intercept = TRUE) %*% theta_0
+f_1 &lt;- function(s) bs(s, knots = seq(0.1, 0.9, len = 10), Boundary.knots = c(0, 1), intercept = TRUE) %*% theta_1
+
+count_sim &lt;- gcfpca_simu(
+  I = I, K = K, family = &quot;poisson&quot;,
+  beta0_true = f_0, beta1_true = f_1,
+  fe_case = 2, re_case = 2
+)</code></pre>
+<pre class="r"><code># use binwidth for 30 intervals to (roughly) compare with pffr model of similar
+# coef-dimension using 25-40 basis functions:
+gc_fpca_count_time &lt;- system.time(
+  count_model &lt;- gc_fpca(
+    formula = Y ~ X + (1 | id),
+    data = count_sim$df_gcfpca,
+    binwidth = K / 30,
+    family = &quot;poisson&quot;,
+    #! if you supply *both* pve &amp; npc you always get npc PCs from face
+    pve = 0.95, npc = 4, periodicity = FALSE
+  )
+)</code></pre>
+<pre><code>## Warning in checkConv(attr(opt, &quot;derivs&quot;), opt$par, ctrl = control$checkConv, : Model failed to converge with max|grad| = 0.0721611 (tol = 0.002, component 1)</code></pre>
+<pre><code>## Warning in checkConv(attr(opt, &quot;derivs&quot;), opt$par, ctrl = control$checkConv, : Model is nearly unidentifiable: very large eigenvalue
+##  - Rescale variables?</code></pre>
+<pre class="r"><code>gc_fpca_count_time</code></pre>
+<pre><code>##    user  system elapsed 
+##  62.624   2.045  62.288</code></pre>
+<pre class="r"><code>count_sim_pffr &lt;- tf_nest(count_sim$df_gcfpca, Y, eta, .id = id, .arg = index)
+count_sim_pffr$Y_mat &lt;- as.matrix(count_sim_pffr$Y)
+
+pffr_count_re_time &lt;- system.time({
+  pffr_count_re &lt;- pffr(
+    Y_mat ~ X + 
+      s(id, bs = &quot;re&quot;, bs.yindex = list(k = 10, bs = &quot;cr&quot;)), # GC-FPCA uses 4 FPCs for this
+    data = count_sim_pffr, family = &quot;poisson&quot;,
+    bs.int = list(k = 30, bs = &quot;cr&quot;), bs.yindex = list(k = 30, bs = &quot;cr&quot;),
+    yind = tf_arg(count_sim_pffr$Y),
+    algorithm = &quot;bam&quot;, method = &quot;fREML&quot;, discrete = TRUE
+  )
+})
+pffr_count_re_time</code></pre>
+<pre><code>##    user  system elapsed 
+##  34.331   7.725  29.391</code></pre>
+<pre class="r"><code>pffr_count_pcre_time &lt;- system.time({
+  pffr_count_pilot &lt;- pffr(Y_mat ~  X, 
+    data = count_sim_pffr, family = &quot;poisson&quot;,
+    bs.int = list(k = 30, bs = &quot;cr&quot;), bs.yindex = list(k = 30, bs = &quot;cr&quot;),
+    yind = tf_arg(count_sim_pffr$Y),
+    algorithm = &quot;bam&quot;, method = &quot;fREML&quot;, discrete = TRUE
+  )
+  count_fpc_e &lt;- resid(pffr_count_pilot) |&gt;
+    fpca.face(pve = .95, knots = 20, lower = 0) # as in gc_fpca
+  count_efuns &lt;- count_fpc_e$efunctions
+  count_evalues &lt;- count_fpc_e$evalues
+  pffr_count_pcre &lt;- pffr(
+    Y_mat ~ X +
+      pcre(
+        id = id, efunctions = count_efuns,
+        evalues = count_evalues, yind = tf_arg(count_sim_pffr$Y)
+      ),
+    data = count_sim_pffr, family = &quot;poisson&quot;,
+    bs.int = list(k = 30, bs = &quot;cr&quot;), bs.yindex = list(k = 30, bs = &quot;cr&quot;),
+    yind = tf_arg(count_sim_pffr$Y),
+    algorithm = &quot;bam&quot;, method = &quot;fREML&quot;, discrete = TRUE
+  )
+})
+pffr_count_pcre_time</code></pre>
+<pre><code>##    user  system elapsed 
+##  59.059   8.611  61.629</code></pre>
+<pre class="r"><code>save.image(file = here::here(&quot;gfamm-checks-sim.RData&quot;))
+
+plot_gcfpca(count_model) /
+  plot_gcfpca_eta(count_model, count_sim)</code></pre>
+<p><img src="gfamm-checks_files/figure-html/pois_pffr_pc-1.png" width="672" /></p>
+<pre class="r"><code>plot_pffr(pffr_count_re)</code></pre>
+<p><img src="gfamm-checks_files/figure-html/pois_pffr_pc-2.png" width="672" /></p>
+<pre class="r"><code>plot_pffr_eta(pffr_count_re, count_sim)</code></pre>
+<p><img src="gfamm-checks_files/figure-html/pois_pffr_pc-3.png" width="672" /></p>
+<pre class="r"><code>plot_pffr(pffr_count_pcre)</code></pre>
+<p><img src="gfamm-checks_files/figure-html/pois_pffr_pc-4.png" width="672" /></p>
+<pre class="r"><code>plot_pffr_eta(pffr_count_pcre, count_sim)</code></pre>
+<p><img src="gfamm-checks_files/figure-html/pois_pffr_pc-5.png" width="672" /></p>
+<pre class="r"><code>## ----df_long-------------------------------------------------------------------------------------
+df_long &lt;- readRDS(here::here(&quot;data/df_long.rds&quot;)) 
+
+## ----nhanes_gcfpca, warning=FALSE, message=FALSE-------------------------------------------------
+gcfpca_start_t &lt;- Sys.time()
+nhanes_gcfpca &lt;- gc_fpca(
+  formula = mims ~ age + gender + (1 | id),
+  data = df_long,
+  binwidth = 30,
+  family = &quot;binomial&quot;,
+  pve = 0.95, npc = 4, periodicity = TRUE
+)
+gcfpca_end_t &lt;- Sys.time()
+gcfpca_time_diff &lt;- as.double(difftime(gcfpca_end_t, gcfpca_start_t, units = &quot;mins&quot;))
+gcfpca_time_diff</code></pre>
+<pre><code>## [1] 36.21107</code></pre>
+<pre class="r"><code>I &lt;- length(unique(df_long$id))
+K &lt;- length(unique(df_long$index))
+
+df_pffr &lt;- data.frame(
+  Y = I(matrix(df_long$mims, I, K, byrow = TRUE)),
+  id = factor(unique(df_long$id)),
+  age = df_long$age[!duplicated(df_long$id)],
+  gender = df_long$gender[!duplicated(df_long$id)]
+)
+
+pffr_start_t &lt;- Sys.time()
+# changes:
+# - k to 10/30 because overkill otherwise
+# - basis to &quot;cc&quot; to mimic periodicity = TRUE
+pffr_model_re &lt;- pffr(Y ~ age + gender + s(id, bs = &quot;re&quot;, bs.yindex = list(bs = &quot;cc&quot;, k = 10)),
+  algorithm = &quot;bam&quot;, method = &quot;fREML&quot;, discrete = TRUE,
+  bs.yindex = list(bs = &quot;cc&quot;, k = 30),
+  bs.int = list(bs = &quot;cc&quot;, k = 30),
+  data = df_pffr,
+  family = &quot;binomial&quot;, yind = sort(unique(df_long$index))
+)
+pffr_end_t &lt;- Sys.time()
+pffr_re_time_diff &lt;- as.double(difftime(pffr_end_t, pffr_start_t, units = &quot;mins&quot;))
+pffr_re_time_diff</code></pre>
+<pre><code>## [1] 0.2148644</code></pre>
+<pre class="r"><code>plot_pffr_nhanes(pffr_model_re)</code></pre>
+<p><img src="gfamm-checks_files/figure-html/unnamed-chunk-3-1.png" width="672" /></p>
+<pre class="r"><code>pffr_start_t &lt;- Sys.time()
+pffr_model_pilot &lt;- pffr(Y ~ age + gender,
+  algorithm = &quot;bam&quot;, method = &quot;fREML&quot;, discrete = TRUE,
+  bs.yindex = list(bs = &quot;cc&quot;, k = 30),
+  bs.int = list(bs = &quot;cc&quot;, k = 30),
+  data = df_pffr,
+  family = &quot;binomial&quot;, yind = sort(unique(df_long$index))
+)
+nhanes_fpc_e &lt;- resid(pffr_model_pilot) |&gt; fpca.face(npc = 4) # would need ~11 FPCs for 90% &quot;PVE&quot;
+nhanes_efuns &lt;- nhanes_fpc_e$efunctions
+nhanes_evalues &lt;- nhanes_fpc_e$evalues
+
+system.time(pffr_model_pc &lt;- pffr(
+  Y ~ age + gender +
+    pcre(
+      id = id, efunctions = nhanes_efuns,
+      evalues = nhanes_evalues, yind =sort(unique(df_long$index))
+    ),
+  algorithm = &quot;bam&quot;, method = &quot;fREML&quot;, discrete = TRUE,
+  bs.yindex = list(bs = &quot;cc&quot;, k = 30),
+  bs.int = list(bs = &quot;cc&quot;, k = 30),
+  data = df_pffr,
+  family = &quot;binomial&quot;, yind = sort(unique(df_long$index))
+))</code></pre>
+<pre><code>##    user  system elapsed 
+##  26.972   8.826  28.547</code></pre>
+<pre class="r"><code>pffr_end_t &lt;- Sys.time()
+(pffr_pc_time_diff &lt;- as.double(difftime(pffr_end_t, pffr_start_t, units = &quot;mins&quot;)))</code></pre>
+<pre><code>## [1] 0.4881677</code></pre>
+<pre class="r"><code>save.image(file = here::here(&quot;gfamm-checks-full.RData&quot;))
+
+plot_pffr_nhanes(pffr_model_pc)</code></pre>
+<p><img src="gfamm-checks_files/figure-html/unnamed-chunk-3-2.png" width="672" /></p>
+<pre class="r"><code>AIC(pffr_model_pc)</code></pre>
+<pre><code>## [1] 47279</code></pre>
+<pre class="r"><code>AIC(pffr_model_re)</code></pre>
+<pre><code>## [1] 44290.24</code></pre>
+<pre class="r"><code>AIC(nhanes_gcfpca$model)</code></pre>
+<pre><code>## [1] 46620.09</code></pre>
+<pre class="r"><code>pffr_model &lt;- pffr_model_re
+sind = sort(unique(df_long$index))
+df_pred &lt;- data.frame(&quot;yindex.vec&quot; = sind,
+                      id = as.numeric(levels(df_long$id))[1],
+                      id.vec = as.numeric(levels(df_long$id))[1],
+                      age = 1, gender = 1)
+betahat_pffr &lt;- mgcv::predict.gam(pffr_model, newdata=df_pred, type=&#39;iterms&#39;, se.fit=TRUE)
+CI_L_pffr &lt;- betahat_pffr[[1]] - 1.96 * betahat_pffr[[2]]
+CI_U_pffr &lt;- betahat_pffr[[1]] + 1.96 * betahat_pffr[[2]]
+
+#! shouldn&#39;t the intercept functions for pffr be shifted by the constant Intercept?rm()=
+
+eta_pffr &lt;- matrix(pffr_model$linear.predictors, nrow = length(unique(df_long$id)), 
+                   ncol = length(unique(df_long$index)))
+
+
+## ----plot_nhanes_fe, echo = TRUE, fig.show=&#39;hold&#39;------------------------------------------------
+plot_df &lt;- cbind.data.frame(sind = rep(seq(0, 1, length.out = K), 3),
+                            betahat = c(data.matrix(nhanes_gcfpca$betaHat)),
+                            betahat_pffr = c(data.matrix(betahat_pffr[[1]][, -4])),
+                            X = c(rep(&quot;Intercept&quot;, K),
+                                  rep(&quot;Age&quot;, K),
+                                  rep(&quot;Gender&quot;, K)),
+                            CI_L_pw = c(data.matrix(nhanes_gcfpca$CI_L_pw)),
+                            CI_U_pw = c(data.matrix(nhanes_gcfpca$CI_U_pw)),
+                            CI_L_joint = c(data.matrix(nhanes_gcfpca$CI_L_joint)),
+                            CI_U_joint = c(data.matrix(nhanes_gcfpca$CI_U_joint)),
+                            CI_L_pffr = c(CI_L_pffr[, -4]),
+                            CI_U_pffr = c(CI_U_pffr[, -4])) %&gt;%
+  mutate(X = factor(X, levels = c(&quot;Intercept&quot;,
+                                  &quot;Age&quot;,
+                                  &quot;Gender&quot;)))
+
+plot_df %&gt;%
+  ggplot(aes(x = sind, y = betahat)) +
+  #geom_ribbon(aes(ymin = CI_L_joint, ymax = CI_U_joint, fill = &quot;CI Joint&quot;), alpha = 0.5) +
+  geom_ribbon(aes(ymin = CI_L_pw, ymax = CI_U_pw, fill = &quot;CI&quot;), alpha = 0.3) +
+  geom_ribbon(aes(ymin = CI_L_pffr, ymax = CI_U_pffr, fill = &quot;CI pffr&quot;), alpha = 0.5) +
+  geom_line(aes(color = &quot;GCFPCA&quot;)) +
+  geom_line(aes(x = sind, y = betahat_pffr, color = &quot;pffr classic&quot;)) +
+  scale_fill_manual(values = c(&quot;CI&quot; = &quot;blue&quot;, &quot;CI Joint&quot; = &quot;lightblue&quot;, &quot;CI pffr&quot; = &quot;pink&quot;), name = &quot;Confidence Interval&quot;) +
+  scale_color_manual(values = c(&quot;GCFPCA&quot; = &quot;blue&quot;, &quot;pffr classic&quot; = &quot;red&quot;), name = &quot;Confidence Interval&quot;) +
+  # Adding a horizontal dotted line at y = 0
+  geom_hline(yintercept = 0, linetype = &quot;dotted&quot;) +
+  # Setting x-axis labels to show time
+  scale_x_continuous(breaks = seq(0, 1, by = 0.2)) +
+  # Facet the plot by variable X, with 3 columns
+  facet_wrap(~X, ncol = 3, scales = &quot;free_y&quot;) +
+  # Adding axis labels and title
+  labs(x = &quot;Functional Domain&quot;, y = &quot;&quot;, fill = &quot;Confidence Interval&quot;)</code></pre>
+<p><img src="gfamm-checks_files/figure-html/unnamed-chunk-4-1.png" width="672" /></p>
+<pre class="r"><code>## ----plot_nhanes_eta-----------------------------------------------------------------------------
+df_long %&gt;%
+  mutate(eta_hat = as.vector(nhanes_gcfpca$etas)) %&gt;%
+  mutate(eta_pffr = as.vector(eta_pffr)) %&gt;%
+  filter(id %in% c(63529, 67427, 82257)) %&gt;%
+  ggplot(aes(index, eta_pffr)) +
+  geom_line() +
+  geom_line(aes(y = eta_hat), linetype = 2, color = &quot;salmon&quot;) +
+  facet_wrap(~id)</code></pre>
+<p><img src="gfamm-checks_files/figure-html/unnamed-chunk-4-2.png" width="672" /></p>
+<pre class="r"><code>pffr_model &lt;- pffr_model_pc
+sind = sort(unique(df_long$index))
+df_pred &lt;- data.frame(&quot;yindex.vec&quot; = sind,
+                      id = as.numeric(levels(df_long$id))[1],
+                      id.vec = as.numeric(levels(df_long$id))[1],
+                      age = 1, gender = 1) |&gt; 
+  cbind(pffr_model_pc$pffr$pcreterms[[1]]$efunctions)
+betahat_pffr &lt;- mgcv::predict.gam(pffr_model, newdata=df_pred, type=&#39;iterms&#39;, se.fit=TRUE)
+CI_L_pffr &lt;- betahat_pffr[[1]] - 1.96 * betahat_pffr[[2]]
+CI_U_pffr &lt;- betahat_pffr[[1]] + 1.96 * betahat_pffr[[2]]
+
+eta_pffr &lt;- matrix(pffr_model_pc$linear.predictors, nrow = length(unique(df_long$id)), 
+                   ncol = length(unique(df_long$index)))
+
+
+## ----plot_nhanes_fe, echo = TRUE, fig.show=&#39;hold&#39;------------------------------------------------
+plot_df &lt;- cbind.data.frame(sind = rep(seq(0, 1, length.out = K), 3),
+                            betahat = c(data.matrix(nhanes_gcfpca$betaHat)),
+                            betahat_pffr = c(data.matrix(betahat_pffr[[1]][, -4])),
+                            X = c(rep(&quot;Intercept&quot;, K),
+                                  rep(&quot;Age&quot;, K),
+                                  rep(&quot;Gender&quot;, K)),
+                            CI_L_pw = c(data.matrix(nhanes_gcfpca$CI_L_pw)),
+                            CI_U_pw = c(data.matrix(nhanes_gcfpca$CI_U_pw)),
+                            CI_L_joint = c(data.matrix(nhanes_gcfpca$CI_L_joint)),
+                            CI_U_joint = c(data.matrix(nhanes_gcfpca$CI_U_joint)),
+                            CI_L_pffr = c(CI_L_pffr[, -4]),
+                            CI_U_pffr = c(CI_U_pffr[, -4])) %&gt;%
+  mutate(X = factor(X, levels = c(&quot;Intercept&quot;,
+                                  &quot;Age&quot;,
+                                  &quot;Gender&quot;)))
+
+plot_df %&gt;%
+  ggplot(aes(x = sind, y = betahat)) +
+  #geom_ribbon(aes(ymin = CI_L_joint, ymax = CI_U_joint, fill = &quot;CI Joint&quot;), alpha = 0.5) +
+  geom_ribbon(aes(ymin = CI_L_pw, ymax = CI_U_pw, fill = &quot;CI&quot;), alpha = 0.3) +
+  geom_ribbon(aes(ymin = CI_L_pffr, ymax = CI_U_pffr, fill = &quot;CI pffr&quot;), alpha = 0.5) +
+  geom_line(aes(color = &quot;GCFPCA&quot;)) +
+  geom_line(aes(x = sind, y = betahat_pffr, color = &quot;pffr PC&quot;)) +
+  scale_fill_manual(values = c(&quot;CI&quot; = &quot;blue&quot;, &quot;CI Joint&quot; = &quot;lightblue&quot;, &quot;CI pffr&quot; = &quot;pink&quot;), name = &quot;Confidence Interval&quot;) +
+  scale_color_manual(values = c(&quot;GCFPCA&quot; = &quot;blue&quot;, &quot;pffr PC&quot; = &quot;red&quot;), name = &quot;Confidence Interval&quot;) +
+  # Adding a horizontal dotted line at y = 0
+  geom_hline(yintercept = 0, linetype = &quot;dotted&quot;) +
+  # Setting x-axis labels to show time
+  scale_x_continuous(breaks = seq(0, 1, by = 0.2)) +
+  # Facet the plot by variable X, with 3 columns
+  facet_wrap(~X, ncol = 3, scales = &quot;free_y&quot;) +
+  # Adding axis labels and title
+  labs(x = &quot;Functional Domain&quot;, y = &quot;&quot;, fill = &quot;Confidence Interval&quot;)</code></pre>
+<p><img src="gfamm-checks_files/figure-html/unnamed-chunk-5-1.png" width="672" /></p>
+<pre class="r"><code>## ----plot_nhanes_eta-----------------------------------------------------------------------------
+df_long %&gt;%
+  mutate(eta_hat = as.vector(nhanes_gcfpca$etas)) %&gt;%
+  mutate(eta_pffr = as.vector(eta_pffr)) %&gt;%
+  filter(id %in% c(63529, 67427, 82257)) %&gt;%
+  ggplot(aes(index, eta_pffr)) +
+  geom_line() +
+  geom_line(aes(y = eta_hat), linetype = 2, color = &quot;salmon&quot;) +
+  facet_wrap(~id)</code></pre>
+<p><img src="gfamm-checks_files/figure-html/unnamed-chunk-5-2.png" width="672" /></p>
+</div>
+
+
+
+
+</div>
+
+<script>
+
+// add bootstrap table styles to pandoc tables
+function bootstrapStylePandocTables() {
+  $('tr.odd').parent('tbody').parent('table').addClass('table table-condensed');
+}
+$(document).ready(function () {
+  bootstrapStylePandocTables();
+});
+
+
+</script>
+
+<!-- tabsets -->
+
+<script>
+$(document).ready(function () {
+  window.buildTabsets("TOC");
+});
+
+$(document).ready(function () {
+  $('.tabset-dropdown > .nav-tabs > li').click(function () {
+    $(this).parent().toggleClass('nav-tabs-open');
+  });
+});
+</script>
+
+<!-- code folding -->
+
+
+<!-- dynamically load mathjax for compatibility with self-contained -->
+<script>
+  (function () {
+    var script = document.createElement("script");
+    script.type = "text/javascript";
+    script.src  = "https://mathjax.rstudio.com/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML";
+    document.getElementsByTagName("head")[0].appendChild(script);
+  })();
+</script>
+
+</body>
+</html>

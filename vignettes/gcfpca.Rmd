@@ -2,6 +2,7 @@
 title: "GC-FPCA: a vignette"
 author: "Yu Lu <ylu136@jh.edu>"
 output: rmarkdown::html_vignette
+
 vignette: >
   %\VignetteIndexEntry{GC-FPCA: a vignette}
   %\VignetteEngine{knitr::rmarkdown}
@@ -174,7 +175,7 @@ phi_df %>%
   facet_wrap(~l)
 ```
 
-The plot below shows latent subject-specific means on the linear predictor scale, $\beta_0(s) + \sum_{r=1}^p X_{ir} \beta_r(s) + \sum_{l=1}^L \xi_{il} \phi_l(s)$, for three subjects in the simulated Poisson dataset. True values are black solid lines while GCFPCA estimates are pink dotted lines.
+The plot below shows latent subject-specific means on the linear predictor scale, $\beta_0(s) + \sum_{r=1}^p X_{ir} \beta_r(s) + \sum_{l=1}^L \xi_{il} \phi_l(s)$, for three subjects in the simulated Binomial dataset. True values are black solid lines while GCFPCA estimates are pink dotted lines.
 
 
 ```{r plot_bFPCA_eta}
@@ -343,7 +344,7 @@ First, we fit our GCFPCA model on the subsetted data. ${\rm logit}\{P\{Z_i(s)=1\
 gcfpca_start_t = Sys.time()
 nhanes_gcfpca <- gc_fpca(formula = mims ~ age + gender +(1|id),
                          data = df_long,
-                         binwidth = 30,
+                         binwidth = 100,
                          family = "binomial",
                          pve = 0.95, npc = 4, periodicity = TRUE)
 gcfpca_end_t = Sys.time()
