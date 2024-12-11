@@ -17,7 +17,6 @@
 #' @param pve Numeric; proportion of variance explained, used to choose the number of principal components unless `npc` is specified.
 #' @param npc Numeric; number of smooth PCs to extract. If `NULL`, `npc` is chosen based on `pve`.
 #' @param family A family object for specifying the distribution and link function for the GLMM. Defaults to `binomial`.
-#' @param warm_start TRUE by default; initialize fit for each interval at optimum for the previous?
 #' @param ... Additional arguments passed to the `mgcv::bam` function.
 #'
 #'
@@ -36,7 +35,7 @@
 #' df_list <- gen_data(N = 100, J = 50, run_num = 1)
 #' gcfpca_mod <- gc_fpca(df_list, bin_width = 10, family = binomial())
 gc_fpca <- function(formula, data, binwidth = 10, family = "gaussian",
-                    pve = NULL, npc = NULL, periodicity = FALSE, warm_start = TRUE,
+                    pve = NULL, npc = NULL, periodicity = FALSE,
                     ...){
   ## Organize the input
   model_formula <- as.character(formula)

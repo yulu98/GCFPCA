@@ -344,7 +344,7 @@ First, we fit our GCFPCA model on the subsetted data. ${\rm logit}\{P\{Z_i(s)=1\
 gcfpca_start_t = Sys.time()
 nhanes_gcfpca <- gc_fpca(formula = mims ~ age + gender +(1|id),
                          data = df_long,
-                         binwidth = 100,
+                         binwidth = 30,
                          family = "binomial",
                          pve = 0.95, npc = 4, periodicity = TRUE)
 gcfpca_end_t = Sys.time()
