@@ -35,6 +35,7 @@ Imports:
     dplyr,
     lme4,
     mgcv,
-    refund
+    refund,
+    future.apply
 Config/testthat/edition: 3
 URL: https://yulu98.github.io/GCFPCA/
