@@ -3,9 +3,9 @@
 #' This is the main function for the GCFPCA package.
 #'
 #' @import dplyr
-#' @importFrom stats coef predict binomial lm median as.formula
+#' @importFrom stats coef predict binomial lm median as.formula fixef
 #' @importFrom refund fpca.face
-#' @importFrom lme4 glmer
+#' @importFrom lme4 glmer glmerControl ranef
 #' @importFrom utils txtProgressBar setTxtProgressBar data
 #' @importFrom mgcv bam predict.bam
 #' @importFrom mvtnorm rmvnorm
@@ -29,6 +29,7 @@
 #' \item{mu}{Estimated population-level mean function.}
 #' \item{Yhat}{FPC approximation of subject-specific means.}
 #' \item{family}{The family used for GLMM.}
+#'
 #'
 #' @examples
 #' # Simulate data and fit GC-FPCA
@@ -54,31 +55,37 @@ gc_fpca <- function(formula, data, binwidth = 10, family = "gaussian",
   ## Step 1, 2
   ##########################################################################################
 
-  fit_ls  <- vector(mode = "list", length = K)
-  for(k in 1:K){
-    # Step 1: Create data bins.
-    if(periodicity == TRUE){
-      ind_k <- (k - floor(binwidth/2)):(k + floor(binwidth/2)) %% K
+  fit_ls <- future.apply::future_lapply(seq_len(K), function(k) {
+    # Determine indices for this bin
+    if (periodicity) {
+      ind_k <- ((k - floor(binwidth/2)):(k + floor(binwidth/2))) %% K
       ind_k[ind_k == 0] <- K
-      data_k <- data %>% filter(index %in% index[ind_k])
-    }else{
+    } else {
       ind_k <- (k - floor(binwidth/2)):(k + floor(binwidth/2))
       ind_k <- ind_k[ind_k > 0]
-      data_k <- data %>% filter(index %in% index[ind_k])
     }
+    data_k <- data %>%
+      dplyr::filter(index %in% index[ind_k])
 
-
-    # Step 2: Fit local GLMMs; extract linear predictor estimates.
-    fit_k <- glmer(
+    # Fit local GLMM
+    fit_k <- lme4::glmer(
       formula,
-      data = data_k, family = family,
-      control=glmerControl(optimizer="bobyqa",optCtrl=list(maxfun=2e5))
+      data = data_k,
+      family = family,
+      control = lme4::glmerControl(optimizer = "bobyqa", optCtrl = list(maxfun = 2e5))
     )
 
-    fit_ls[[k]] <- data.frame("id" = 1:I,
-                              "eta_i" = coef(fit_k)$id[[1]]-fixef(fit_k)[1],
-                              "index_bin" = k)
-    }
+    # Extract random effect as eta_i
+    data.frame(
+      id = unique(data$ id),
+      eta_i = coef(fit_k)$id[[1]] - lme4::fixef(fit_k)[1],
+      index_bin = k
+    )
+  })
+
+  # Combine results
+  fit_df <- dplyr::bind_rows(fit_ls) %>%
+    dplyr::arrange(id, index_bin)
 
     ##########################################################################################
     ## Step 3

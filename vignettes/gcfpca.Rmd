@@ -76,8 +76,8 @@ theta_0 = rnorm(10 + 4, sd=1)
 theta_1 = rnorm(10 + 4, sd=1)
 
 #set true fixed effects
-f_0 = function(s) bs(s, knots=seq(0.1, 0.9, len=10), Boundary.knots=c(0,1), intercept=TRUE) %*% theta_0
-f_1 = function(s) bs(s, knots=seq(0.1, 0.9, len=10), Boundary.knots=c(0,1), intercept=TRUE) %*% theta_1
+f_0 = function(s) splines::bs(s, knots=seq(0.1, 0.9, len=10), Boundary.knots=c(0,1), intercept=TRUE) %*% theta_0
+f_1 = function(s) splines::bs(s, knots=seq(0.1, 0.9, len=10), Boundary.knots=c(0,1), intercept=TRUE) %*% theta_1
 
 bin_sim <- gcfpca_simu(I = I, K = K, family = "binomial",
                          beta0_true = f_0, beta1_true = f_1)
@@ -363,7 +363,8 @@ df_pffr <- data.frame(Y = I(matrix(df_long$mims, I, K, byrow=TRUE)),
                       gender = df_long$gender[!duplicated(df_long$id)])
 
 pffr_start_t = Sys.time()
-pffr_model <- pffr(Y ~ age + gender + s(id, bs="re"), 
+pffr_model <- pffr(Y ~ age + gender + 
+                     s(id, bs = "re", bs.yindex = list(k = 10, bs = "cr")), 
                  # use mgcv::bam with fastREML smoothing parameter 
                  # selection to estimate the model
                  algorithm="bam", method="fREML", discrete=TRUE,
